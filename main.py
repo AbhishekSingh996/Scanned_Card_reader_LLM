@@ -1,5 +1,5 @@
 def main():
-    print("Hello from card-reader-project!")
+    print("Hello from scanned-card-reader-llm!")
 
 
 if __name__ == "__main__":

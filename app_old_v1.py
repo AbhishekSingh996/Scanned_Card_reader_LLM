@@ -6,16 +6,11 @@ import os
 
 import logging
 from logging.handlers import RotatingFileHandler
-
 # ---------------------------------------------------------
 # LOGGING SETUP
 # ---------------------------------------------------------
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
-
-# JSON output directory
-JSON_DIR = "json_output"
-os.makedirs(JSON_DIR, exist_ok=True)
 
 log_file = os.path.join(LOG_DIR, "service.log")
 
@@ -33,11 +28,13 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
 import secrets
 import requests
 import base64
 import json
 import re
+import os
 import io
 from PIL import Image, ImageFile
 from datetime import datetime
@@ -166,6 +163,7 @@ def clean_json_markdown(text: str) -> str:
 
     return text.strip()
 
+import json
 from json import JSONDecodeError
 
 def safe_json_loads(raw_text: str):
@@ -275,20 +273,20 @@ def extract_details(payload: ImagePayload):
     random_hex = secrets.token_hex(4)
     base_name = f"extract_{timestamp}_{random_hex}"
     image_path = os.path.join("images", f"{base_name}.png")
-    json_path  = os.path.join(JSON_DIR, f"{base_name}.json")
+    json_path  = os.path.join("images", f"{base_name}.json")
 
     logger.debug(f"Generated filenames: {image_path}, {json_path}")
 
     # -----------------------------------------
     # 4️⃣ Save PNG WITHOUT DPI (for logging/audit only)
     # -----------------------------------------
-    # logger.debug("Saving PNG to disk")
-    # try:
-    #     img.save(image_path, format="PNG")
-    #     logger.info(f"Image saved successfully: {image_path}")
-    # except Exception as e:
-    #     logger.critical(f"Failed to save PNG: {e}")
-    #     raise HTTPException(500, f"Error saving PNG: {e}")
+    logger.debug("Saving PNG to disk")
+    try:
+        img.save(image_path, format="PNG")
+        logger.info(f"Image saved successfully: {image_path}")
+    except Exception as e:
+        logger.critical(f"Failed to save PNG: {e}")
+        raise HTTPException(500, f"Error saving PNG: {e}")
 
     # ⚠️ IMPORTANT:
     # We STOP using the saved PNG for LLM.
@@ -346,7 +344,7 @@ STRICT RULES:
                 ]
             }
         ],
-        # "max_tokens": 4000,
+        "max_tokens": 4000,
         "temperature": 0.0,
         "response_format": {"type": "json_object"}  # if your server supports it
     }
@@ -387,16 +385,6 @@ STRICT RULES:
             {"error": "Failed to parse JSON", "raw_output": cleaned_text}
         )
 
-    # -----------------------------------------
-    # 🔟 Save JSON to disk in json_output folder
-    # -----------------------------------------
-    # try:
-    #     with open(json_path, "w", encoding="utf-8") as f:
-    #         json.dump(parsed, f, ensure_ascii=False, indent=2)
-    #     logger.info(f"JSON saved successfully: {json_path}")
-    # except Exception as e:
-    #     logger.error(f"Failed to save JSON file: {e}")
-
     logger.info("Extraction completed successfully")
 
-    return parsed
+    return parsed["extracted_info"]
